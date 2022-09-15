@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
@@ -22,6 +23,8 @@ public class ClearAllCommand extends ReactiveEventAdapter {
 
     @Override
     public @NotNull Publisher<?> onChatInputInteraction(@NotNull ChatInputInteractionEvent event) {
+        if (!event.getCommandName().equals("clearall")) return Mono.empty();
+
         Flux<Void> deleteMessages = event
                 .getInteraction()
                 .getChannel()

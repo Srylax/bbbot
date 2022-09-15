@@ -18,24 +18,7 @@
           "description": "The type of the group",
           "required": true,
           "type": "3",
-          "choices": [
-            {
-              "name": "BM",
-              "value": "BM_CLASS"
-            },
-            {
-              "name": "ABU",
-              "value": "ABU_CLASS"
-            },
-            {
-              "name": "Work",
-              "value": "WORK_CLASS"
-            },
-            {
-              "name": "Project",
-              "value": "PROJECT"
-            }
-          ]
+          "autocomplete": "true"
         }
       ]
     },
