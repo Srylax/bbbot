@@ -1,0 +1,21 @@
+{
+  "name": "view",
+  "description": "View objects",
+  "default_member_permissions": "16",
+  "options": [
+    {
+      "name": "group-type",
+      "description": "View a Group Type",
+      "type": "1",
+      "options": [
+        {
+          "name": "id",
+          "description": "The id of the Group Type",
+          "required": true,
+          "autocomplete": true,
+          "type": "3"
+        }
+      ]
+    }
+  ]
+}

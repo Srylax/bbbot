@@ -6,7 +6,6 @@ import dev.srylax.bbbot.db.group.Group;
 import dev.srylax.bbbot.db.group.GroupRepository;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.PermissionOverwrite;
@@ -31,11 +30,14 @@ import java.util.function.Function;
 
 
 @Component
-public class GroupAddCommand extends ReactiveEventListener {
+public class CreateGroupCommand extends ReactiveEventListener {
+
+    private static final String COMMAND_GROUP = "create";
+    private static final String COMMAND_SUP_GROUP = "group";
     private final GroupTypeRepository groupTypeRepository;
     private final GroupRepository groupRepository;
 
-    public GroupAddCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository, GroupRepository groupRepository) {
+    public CreateGroupCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository, GroupRepository groupRepository) {
         super(client);
         this.groupTypeRepository = groupTypeRepository;
         this.groupRepository = groupRepository;
@@ -43,9 +45,9 @@ public class GroupAddCommand extends ReactiveEventListener {
 
     @Override
     public @NotNull Publisher<?> onChatInputInteraction(@NotNull ChatInputInteractionEvent event) {
-        if (!event.getCommandName().equals("group") || event.getOption("add").isEmpty()) return Mono.empty();
+        if (!event.getCommandName().equals(COMMAND_GROUP) || event.getOption(COMMAND_SUP_GROUP).isEmpty()) return Mono.empty();
 
-        ApplicationCommandInteractionOption commandOption = event.getOption("add").get();
+        ApplicationCommandInteractionOption commandOption = event.getOption(COMMAND_SUP_GROUP).get();
         String name = getRequiredValue(commandOption,"name").asString();
         String type = getRequiredValue(commandOption,"type").asString();
 
@@ -104,7 +106,7 @@ public class GroupAddCommand extends ReactiveEventListener {
 
     @Override
     public @NotNull Publisher<?> onChatInputAutoCompleteInteraction(@NotNull ChatInputAutoCompleteEvent event) {
-        if (!event.getCommandName().equals("group") || event.getOption("add").isEmpty()) return Mono.empty();
+        if (!event.getCommandName().equals(COMMAND_GROUP) || event.getOption(COMMAND_SUP_GROUP).isEmpty()) return Mono.empty();
 
         String search = event.getFocusedOption().getValue()
                 .map(ApplicationCommandInteractionOptionValue::asString)

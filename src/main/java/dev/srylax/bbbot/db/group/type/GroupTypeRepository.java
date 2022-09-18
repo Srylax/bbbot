@@ -10,4 +10,5 @@ public interface GroupTypeRepository extends ReactiveMongoRepository<GroupType,S
     Mono<Boolean> existsByName(String name);
 
     Flux<GroupType> findByNameLikeIgnoreCase(String name);
+    Mono<GroupType> findByName(String name);
 }

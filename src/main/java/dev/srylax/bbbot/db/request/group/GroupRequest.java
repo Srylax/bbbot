@@ -2,7 +2,7 @@ package dev.srylax.bbbot.db.request.group;
 
 import com.mongodb.lang.NonNull;
 import dev.srylax.bbbot.assets.TEXTS;
-import discord4j.core.object.component.ActionRow;
+import dev.srylax.bbbot.db.Embedable;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
 import lombok.Data;
@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Document("groupRequest")
-public class GroupRequest {
+public class GroupRequest implements Embedable {
 
     @Id
     private String id;
@@ -30,7 +30,7 @@ public class GroupRequest {
 
     @NonNull
     @lombok.NonNull
-    private String groupDescription;
+    private String description;
 
     @NonNull
     @lombok.NonNull
@@ -43,7 +43,7 @@ public class GroupRequest {
                         EmbedCreateFields.Field.of(TEXTS.get("User"), String.valueOf(userId),false),
                         EmbedCreateFields.Field.of(TEXTS.get("GroupName"),groupName,true),
                         EmbedCreateFields.Field.of(TEXTS.get("GroupType"),groupType,true),
-                        EmbedCreateFields.Field.of(TEXTS.get("Description"),groupDescription,false)
+                        EmbedCreateFields.Field.of(TEXTS.get("Description"), description,false)
                 );
     }
 }
