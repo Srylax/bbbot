@@ -9,4 +9,6 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface GroupRequestRepository extends ReactiveMongoRepository<GroupRequest,String> {
 
+    Flux<GroupRequest> findByGroupNameLikeIgnoreCase(String groupName);
+
 }

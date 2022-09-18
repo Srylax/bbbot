@@ -16,6 +16,20 @@
           "type": "3"
         }
       ]
+    },
+    {
+      "name": "group-request",
+      "description": "View a Group Request",
+      "type": "1",
+      "options": [
+        {
+          "name": "id",
+          "description": "The id of the Group Request",
+          "required": true,
+          "autocomplete": true,
+          "type": "3"
+        }
+      ]
     }
   ]
 }

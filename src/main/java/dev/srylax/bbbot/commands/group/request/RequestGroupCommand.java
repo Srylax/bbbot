@@ -1,4 +1,4 @@
-package dev.srylax.bbbot.commands.request.group;
+package dev.srylax.bbbot.commands.group.request;
 
 import dev.srylax.bbbot.assets.TEXTS;
 import dev.srylax.bbbot.commands.ReactiveEventListener;

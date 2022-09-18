@@ -1,7 +1,8 @@
-package dev.srylax.bbbot.commands.request.group;
+package dev.srylax.bbbot.commands.group.request.crud;
 
 import dev.srylax.bbbot.assets.TEXTS;
 import dev.srylax.bbbot.commands.ReactiveEventListener;
+import dev.srylax.bbbot.commands.group.request.GroupRequestCommand;
 import dev.srylax.bbbot.db.request.group.GroupRequest;
 import dev.srylax.bbbot.db.request.group.GroupRequestRepository;
 import discord4j.core.GatewayDiscordClient;
@@ -16,20 +17,15 @@ import reactor.core.publisher.Mono;
 
 
 @Component
-public class CreateGroupRequestCommand extends ReactiveEventListener {
-    private static final String COMMAND_SUP_GROUP = "group-request";
-    private static final String COMMAND_GROUP = "create";
-
-    private final GroupRequestRepository groupRequestRepository;
+public class CreateGroupRequestCommand extends GroupRequestCommand {
 
     public CreateGroupRequestCommand(GatewayDiscordClient client, GroupRequestRepository groupRequestRepository) {
-        super(client);
-        this.groupRequestRepository = groupRequestRepository;
+        super(client,groupRequestRepository,"create");
     }
 
     @Override
     public @NotNull Publisher<?> onChatInputInteraction(ChatInputInteractionEvent event) {
-        if (!event.getCommandName().equals(COMMAND_GROUP) || event.getOption(COMMAND_SUP_GROUP).isEmpty())
+        if (!event.getCommandName().equals(commandGroup) || event.getOption(COMMAND_SUP_GROUP).isEmpty())
             return Mono.empty();
 
         ApplicationCommandInteractionOption commandOption = event.getOption(COMMAND_SUP_GROUP).get();
@@ -40,11 +36,12 @@ public class CreateGroupRequestCommand extends ReactiveEventListener {
 
         GroupRequest request = new GroupRequest(name, type, description, userId);
 
-        return groupRequestRepository.save(request)
+        return event.deferReply().withEphemeral(true)
+                .then(groupRequestRepository.save(request))
                 .map(e -> e.toEmbed()
                         .withTitle(TEXTS.get("GroupRequestCreated"))
                         .withColor(Color.GREEN))
-                .map(e ->
+                .flatMap(e ->
                         event.createFollowup(InteractionFollowupCreateSpec.create()
                                 .withEmbeds(e)));
     }

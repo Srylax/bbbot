@@ -1,4 +1,4 @@
-package dev.srylax.bbbot.commands.request.group;
+package dev.srylax.bbbot.commands.group.request;
 
 import dev.srylax.bbbot.commands.ReactiveEventListener;
 import discord4j.core.GatewayDiscordClient;
@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 @Component
-public class RequestGroupButton extends ReactiveEventListener {
-    public RequestGroupButton(GatewayDiscordClient client) {
+public class GroupRequestButton extends ReactiveEventListener {
+    public GroupRequestButton(GatewayDiscordClient client) {
         super(client);
     }
 

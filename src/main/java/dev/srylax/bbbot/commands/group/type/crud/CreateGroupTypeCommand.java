@@ -19,8 +19,6 @@ import reactor.core.publisher.Mono;
 @Component
 public class CreateGroupTypeCommand extends GroupTypeCommand {
 
-
-
     public CreateGroupTypeCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository) {
         super(client,groupTypeRepository,"create");
     }
