@@ -1,4 +1,5 @@
 {
   "name": "clearall",
-  "description": "Clears all messages from a Channel"
+  "description": "Clears all messages from a Channel",
+  "default_member_permissions": "16"
 }

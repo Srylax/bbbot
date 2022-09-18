@@ -1,6 +1,7 @@
 {
   "name": "group",
   "description": "Manage groups",
+  "default_member_permissions": "16",
   "options": [
     {
       "name": "add",

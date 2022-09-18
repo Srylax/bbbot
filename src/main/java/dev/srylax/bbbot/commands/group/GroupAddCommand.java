@@ -12,8 +12,9 @@ import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Guild;
+import discord4j.core.object.entity.Role;
+import discord4j.core.object.entity.channel.Category;
 import discord4j.core.object.entity.channel.Channel;
-import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.RoleCreateSpec;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
 import discord4j.rest.util.Permission;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.function.Function;
+
 
 @Component
 public class GroupAddCommand extends ReactiveEventAdapter {
@@ -52,60 +54,68 @@ public class GroupAddCommand extends ReactiveEventAdapter {
                 .map(ApplicationCommandInteractionOptionValue::asString)
                 .orElseThrow(IllegalStateException::new);
 
+        Mono<Role> createRole = event.getInteraction().getGuild()
+                .flatMap(g -> g.createRole(RoleCreateSpec.create().withName(name)));
 
-        Flux<Channel> createGroup = event.getInteraction()
-                .getGuild()
-                .flatMapMany(g ->
-                        Flux.concat(
-                                        g.createRole(RoleCreateSpec.create().withName(name))
-                                                .map(r ->
-                                                        PermissionOverwrite.forRole(r.getId(),
-                                                                PermissionSet.of(
-                                                                        Permission.VIEW_CHANNEL,
-                                                                        Permission.READ_MESSAGE_HISTORY,
-                                                                        Permission.SEND_MESSAGES,
-                                                                        Permission.ADD_REACTIONS,
-                                                                        Permission.CONNECT,
-                                                                        Permission.SPEAK), PermissionSet.of()
-                                                        )),
-                                        g.getEveryoneRole()
-                                                .map(r ->
-                                                        PermissionOverwrite.forRole(r.getId(),
-                                                                PermissionSet.of(), PermissionSet.of(
-                                                                        Permission.VIEW_CHANNEL))
-                                                )
-                                ).collectList()
-                                .flatMapMany(r ->
-                                        g.createCategory(name)
-                                                .withPermissionOverwrites(r)
-                                                .flatMapMany(cat ->
-                                                        Flux.<Channel>concat(
-                                                                g.createTextChannel(name)
-                                                                        .withParentId(cat.getId()),
-                                                                g.createVoiceChannel(name)
-                                                                        .withParentId(cat.getId())
-                                                        )
-                                                )
-                                )
+        Mono<PermissionOverwrite> everyoneRolePermission = event.getInteraction().getGuild()
+                .flatMap(Guild::getEveryoneRole)
+                .map(r -> PermissionOverwrite.forRole(
+                        r.getId(),
+                        PermissionSet.of(),
+                        PermissionSet.of(Permission.VIEW_CHANNEL)
+                ));
+
+        Function<Role, PermissionOverwrite> toPermissionOverwrite = r ->
+                PermissionOverwrite.forRole(r.getId(),
+                        PermissionSet.of(
+                                Permission.VIEW_CHANNEL,
+                                Permission.READ_MESSAGE_HISTORY,
+                                Permission.SEND_MESSAGES,
+                                Permission.ADD_REACTIONS,
+                                Permission.CONNECT,
+                                Permission.SPEAK),
+                        PermissionSet.of()
                 );
 
 
+        Function<List<PermissionOverwrite>, Mono<Category>> createCategory = p -> event.getInteraction().getGuild()
+                .flatMap(g ->
+                        g.createCategory(name)
+                                .withPermissionOverwrites(p)
+                );
+
+        Function<Category, Flux<Channel>> createChannels = c -> event.getInteraction().getGuild()
+                .flatMapMany(g ->
+                        Flux.concat(
+                                g.createTextChannel(name)
+                                        .withParentId(c.getId()),
+                                g.createVoiceChannel(name)
+                                        .withParentId(c.getId())
+                        ));
+
+
         return event.deferReply().withEphemeral(true)
-                .then(
-                        groupTypeRepository.findById(type)
-                                .flatMap(t -> groupRepository.save(new Group(name, t)))
-                                .and(event.createFollowup(TEXTS.get("GroupCreated", name)))
-                                .thenMany(createGroup)
-                                .then(event.createFollowup(TEXTS.get("ChannelsCreated", name)))
-                )
-                .onErrorResume(e -> event.createFollowup(TEXTS.get("GroupAlreadyExists", name)).withEphemeral(true));
+                .then(groupTypeRepository.findById(type))
+                .flatMap(t->groupRepository.save(new Group(name,t)))
+                .switchIfEmpty(Mono.error(new GroupTypeNotFoundException(type)))
+                .then(createRole)
+                .map(toPermissionOverwrite)
+                .mergeWith(everyoneRolePermission).collectList()
+                .flatMap(createCategory)
+                .flatMapMany(createChannels)
+                .then(event.createFollowup(TEXTS.get("GroupCreated", name)))
+                .onErrorResume(e -> event.createFollowup(TEXTS.get("CouldNotCompleteAction", e.getMessage())));
     }
 
     @Override
     public @NotNull Publisher<?> onChatInputAutoCompleteInteraction(@NotNull ChatInputAutoCompleteEvent event) {
         if (!event.getCommandName().equals("group") || event.getOption("add").isEmpty()) return Mono.empty();
 
-        Flux<ApplicationCommandOptionChoiceData> options = groupTypeRepository.findAll()
+        String search = event.getFocusedOption().getValue()
+                .map(ApplicationCommandInteractionOptionValue::asString)
+                .orElse("");
+
+        Flux<ApplicationCommandOptionChoiceData> options = groupTypeRepository.findByNameLikeIgnoreCase(search)
                 .map(e -> ApplicationCommandOptionChoiceData.builder()
                         .name(e.getName())
                         .value(e.getId())

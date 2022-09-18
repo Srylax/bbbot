@@ -8,4 +8,6 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface GroupTypeRepository extends ReactiveMongoRepository<GroupType,String> {
     Mono<Boolean> existsByName(String name);
+
+    Flux<GroupType> findByNameLikeIgnoreCase(String name);
 }
