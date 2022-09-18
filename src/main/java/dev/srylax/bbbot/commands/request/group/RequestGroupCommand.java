@@ -3,8 +3,9 @@ package dev.srylax.bbbot.commands.request.group;
 import dev.srylax.bbbot.assets.TEXTS;
 import dev.srylax.bbbot.commands.ReactiveEventListener;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
+import dev.srylax.bbbot.db.request.group.GroupRequest;
+import dev.srylax.bbbot.db.request.group.GroupRequestRepository;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
@@ -21,14 +22,18 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.function.Function;
+
 
 @Component
 public class RequestGroupCommand extends ReactiveEventListener {
     private final GroupTypeRepository groupTypeRepository;
+    private final GroupRequestRepository groupRequestRepository;
 
-    public RequestGroupCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository) {
+    public RequestGroupCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository, GroupRequestRepository groupRequestRepository) {
         super(client);
         this.groupTypeRepository = groupTypeRepository;
+        this.groupRequestRepository = groupRequestRepository;
     }
 
     @Override
@@ -37,33 +42,30 @@ public class RequestGroupCommand extends ReactiveEventListener {
 
         ApplicationCommandInteractionOption commandOption = event.getOption("group").get();
 
-        String name = getRequiredValue(commandOption,"name").asString();
-        String type = getRequiredValue(commandOption,"type").asString();
-        String description = getRequiredValue(commandOption,"description").asString();
+        String name = getRequiredValue(commandOption, "name").asString();
+        String type = getRequiredValue(commandOption, "type").asString();
+        String description = getRequiredValue(commandOption, "description").asString();
 
 
-        EmbedCreateSpec groupRequestEmbed = EmbedCreateSpec.create()
-                .withColor(Color.YELLOW)
-                .withTitle("New Group Request from " + event.getInteraction().getUser().getTag())
-                .withFields(
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupName"), name, true),
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"), type, true),
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"), event.getInteraction().getUser().getMention(), false),
-                        EmbedCreateFields.Field.of(TEXTS.get("Description"), description, false)
-                );
-
-        MessageCreateSpec groupRequestMessage = MessageCreateSpec.create()
-                .withEmbeds(groupRequestEmbed)
+        Function<EmbedCreateSpec, MessageCreateSpec> groupRequestMessage = embed -> MessageCreateSpec.create()
+                .withEmbeds(embed
+                        .withColor(Color.YELLOW)
+                        .withTitle(TEXTS.get("NewGroupRequest") + " " + TEXTS.get("from") + " " + event.getInteraction().getUser().getTag()))
                 .withComponents(ActionRow.of(
                         Button.danger("approveRequest", TEXTS.get("Approve")),
                         Button.success("denyRequest", TEXTS.get("Deny")
                         )));
 
 
+        GroupRequest groupRequest = new GroupRequest(name, type, description, event.getInteraction().getUser().getId().asLong());
+
         return event.reply(TEXTS.get("GroupRequestCreated")).withEphemeral(true)
-                .then(event.getInteraction().getGuild()
+                .then(groupRequestRepository.save(groupRequest))
+                .map(GroupRequest::toEmbed)
+                .map(groupRequestMessage)
+                .flatMap(m -> event.getInteraction().getGuild()
                         .flatMap(Guild::getSystemChannel)
-                        .flatMap(c -> c.createMessage(groupRequestMessage)));
+                        .flatMap(c -> c.createMessage(m)));
     }
 
     @Override
