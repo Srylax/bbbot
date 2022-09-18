@@ -1,33 +1,19 @@
-package dev.srylax.bbbot.commands.group.request;
+package dev.srylax.bbbot.commands.request.group;
 
 import dev.srylax.bbbot.assets.TEXTS;
-import dev.srylax.bbbot.db.group.Group;
-import dev.srylax.bbbot.db.group.GroupRepository;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
-import discord4j.core.object.command.Interaction;
-import discord4j.core.object.component.ActionComponent;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.Role;
-import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.Category;
-import discord4j.core.object.entity.channel.Channel;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.*;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
-import discord4j.discordjson.json.InteractionData;
 import discord4j.rest.util.Color;
-import discord4j.rest.util.Permission;
-import discord4j.rest.util.PermissionSet;
 import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
@@ -35,19 +21,19 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
-
 @Component
-public class GroupRequestCommand extends ReactiveEventAdapter {
+public class RequestGroupCommand extends ReactiveEventAdapter {
     private final GroupTypeRepository groupTypeRepository;
 
-    public GroupRequestCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository) {
+    public RequestGroupCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository) {
         this.groupTypeRepository = groupTypeRepository;
         client.on(this).subscribe();
     }
 
     @Override
     public @NotNull Publisher<?> onChatInputInteraction(@NotNull ChatInputInteractionEvent event) {
-        if (!event.getCommandName().equals("request")) return Mono.empty();
+        if (!event.getCommandName().equals("request") || event.getOption("group").isEmpty()) return Mono.empty();
+
 
         String name = event.getOption("name")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -67,31 +53,30 @@ public class GroupRequestCommand extends ReactiveEventAdapter {
                 .withColor(Color.YELLOW)
                 .withTitle("New Group Request from " + event.getInteraction().getUser().getTag())
                 .withFields(
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupName"),name,true),
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"),type,true),
-                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"),event.getInteraction().getUser().getMention(),false),
-                        EmbedCreateFields.Field.of(TEXTS.get("Description"),description,false)
+                        EmbedCreateFields.Field.of(TEXTS.get("GroupName"), name, true),
+                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"), type, true),
+                        EmbedCreateFields.Field.of(TEXTS.get("GroupType"), event.getInteraction().getUser().getMention(), false),
+                        EmbedCreateFields.Field.of(TEXTS.get("Description"), description, false)
                 );
 
         MessageCreateSpec groupRequestMessage = MessageCreateSpec.create()
                 .withEmbeds(groupRequestEmbed)
                 .withComponents(ActionRow.of(
-                        Button.danger("approveRequest",TEXTS.get("Approve")),
-                        Button.success("denyRequest",TEXTS.get("Deny")
+                        Button.danger("approveRequest", TEXTS.get("Approve")),
+                        Button.success("denyRequest", TEXTS.get("Deny")
                         )));
-
-
 
 
         return event.reply(TEXTS.get("GroupRequestCreated")).withEphemeral(true)
                 .then(event.getInteraction().getGuild()
                         .flatMap(Guild::getSystemChannel)
-                        .flatMap(c->c.createMessage(groupRequestMessage)));
+                        .flatMap(c -> c.createMessage(groupRequestMessage)));
     }
 
     @Override
     public @NotNull Publisher<?> onChatInputAutoCompleteInteraction(@NotNull ChatInputAutoCompleteEvent event) {
-        if (!event.getCommandName().equals("request")) return Mono.empty();
+        if (!event.getCommandName().equals("request") || event.getOption("group").isEmpty()) return Mono.empty();
+
 
         String search = event.getFocusedOption().getValue()
                 .map(ApplicationCommandInteractionOptionValue::asString)
