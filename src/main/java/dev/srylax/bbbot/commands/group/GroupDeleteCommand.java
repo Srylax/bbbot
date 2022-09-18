@@ -1,6 +1,7 @@
 package dev.srylax.bbbot.commands.group;
 
 import dev.srylax.bbbot.assets.TEXTS;
+import dev.srylax.bbbot.commands.ReactiveEventListener;
 import dev.srylax.bbbot.db.group.Group;
 import dev.srylax.bbbot.db.group.GroupRepository;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
@@ -29,12 +30,12 @@ import java.util.function.Function;
 
 
 @Component
-public class GroupDeleteCommand extends ReactiveEventAdapter {
+public class GroupDeleteCommand extends ReactiveEventListener {
     private final GroupRepository groupRepository;
 
     public GroupDeleteCommand(GatewayDiscordClient client, GroupRepository groupRepository) {
+        super(client);
         this.groupRepository = groupRepository;
-        client.on(this).subscribe();
     }
 
     @Override
@@ -42,10 +43,7 @@ public class GroupDeleteCommand extends ReactiveEventAdapter {
         if (!event.getCommandName().equals("group") || event.getOption("delete").isEmpty()) return Mono.empty();
 
         ApplicationCommandInteractionOption commandOption = event.getOption("delete").get();
-        String name = commandOption.getOption("name")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
+        String name = getRequiredValue(commandOption,"name").asString();
 
 
 

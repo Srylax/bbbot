@@ -1,6 +1,7 @@
 package dev.srylax.bbbot.commands.request.group;
 
 import dev.srylax.bbbot.assets.TEXTS;
+import dev.srylax.bbbot.commands.ReactiveEventListener;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
@@ -22,31 +23,23 @@ import reactor.core.publisher.Mono;
 
 
 @Component
-public class RequestGroupCommand extends ReactiveEventAdapter {
+public class RequestGroupCommand extends ReactiveEventListener {
     private final GroupTypeRepository groupTypeRepository;
 
     public RequestGroupCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository) {
+        super(client);
         this.groupTypeRepository = groupTypeRepository;
-        client.on(this).subscribe();
     }
 
     @Override
     public @NotNull Publisher<?> onChatInputInteraction(@NotNull ChatInputInteractionEvent event) {
         if (!event.getCommandName().equals("request") || event.getOption("group").isEmpty()) return Mono.empty();
 
+        ApplicationCommandInteractionOption commandOption = event.getOption("group").get();
 
-        String name = event.getOption("name")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
-        String type = event.getOption("type")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
-        String description = event.getOption("description")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
+        String name = getRequiredValue(commandOption,"name").asString();
+        String type = getRequiredValue(commandOption,"type").asString();
+        String description = getRequiredValue(commandOption,"description").asString();
 
 
         EmbedCreateSpec groupRequestEmbed = EmbedCreateSpec.create()

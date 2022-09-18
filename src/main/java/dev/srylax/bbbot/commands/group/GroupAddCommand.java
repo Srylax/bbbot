@@ -1,6 +1,7 @@
 package dev.srylax.bbbot.commands.group;
 
 import dev.srylax.bbbot.assets.TEXTS;
+import dev.srylax.bbbot.commands.ReactiveEventListener;
 import dev.srylax.bbbot.db.group.Group;
 import dev.srylax.bbbot.db.group.GroupRepository;
 import dev.srylax.bbbot.db.group.type.GroupTypeRepository;
@@ -30,14 +31,14 @@ import java.util.function.Function;
 
 
 @Component
-public class GroupAddCommand extends ReactiveEventAdapter {
+public class GroupAddCommand extends ReactiveEventListener {
     private final GroupTypeRepository groupTypeRepository;
     private final GroupRepository groupRepository;
 
     public GroupAddCommand(GatewayDiscordClient client, GroupTypeRepository groupTypeRepository, GroupRepository groupRepository) {
+        super(client);
         this.groupTypeRepository = groupTypeRepository;
         this.groupRepository = groupRepository;
-        client.on(this).subscribe();
     }
 
     @Override
@@ -45,14 +46,8 @@ public class GroupAddCommand extends ReactiveEventAdapter {
         if (!event.getCommandName().equals("group") || event.getOption("add").isEmpty()) return Mono.empty();
 
         ApplicationCommandInteractionOption commandOption = event.getOption("add").get();
-        String name = commandOption.getOption("name")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
-        String type = commandOption.getOption("type")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElseThrow(IllegalStateException::new);
+        String name = getRequiredValue(commandOption,"name").asString();
+        String type = getRequiredValue(commandOption,"type").asString();
 
         Mono<Role> createRole = event.getInteraction().getGuild()
                 .flatMap(g -> g.createRole(RoleCreateSpec.create().withName(name)));
