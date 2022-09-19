@@ -2,13 +2,10 @@ package dev.srylax.bbbot.commands.group.request.crud;
 
 import dev.srylax.bbbot.assets.TEXTS;
 import dev.srylax.bbbot.commands.group.request.GroupRequestCommand;
-import dev.srylax.bbbot.db.request.group.GroupRequest;
 import dev.srylax.bbbot.db.request.group.GroupRequestRepository;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
-import discord4j.core.object.component.ActionRow;
-import discord4j.core.object.component.Button;
 import discord4j.core.spec.InteractionFollowupCreateSpec;
 import discord4j.rest.util.Color;
 import org.jetbrains.annotations.NotNull;
@@ -18,10 +15,10 @@ import reactor.core.publisher.Mono;
 
 
 @Component
-public class ViewGroupRequestCommand extends GroupRequestCommand {
+public class DeleteGroupRequestCommand extends GroupRequestCommand {
 
-    public ViewGroupRequestCommand(GatewayDiscordClient client, GroupRequestRepository groupRequestRepository) {
-        super(client,groupRequestRepository,"view");
+    public DeleteGroupRequestCommand(GatewayDiscordClient client, GroupRequestRepository groupRequestRepository) {
+        super(client,groupRequestRepository,"delete");
     }
 
     @Override
@@ -36,15 +33,11 @@ public class ViewGroupRequestCommand extends GroupRequestCommand {
         return event.deferReply().withEphemeral(true)
                 .then(groupRequestRepository.findById(id))
                 .map(e -> e.toEmbed()
-                        .withTitle(TEXTS.get("GroupRequest"))
+                        .withTitle(TEXTS.get("GroupRequestDeleted"))
                         .withColor(Color.GREEN))
                 .flatMap(e ->
                         event.createFollowup(InteractionFollowupCreateSpec.create()
-                                .withEmbeds(e)
-                                .withComponents(ActionRow.of(
-                                        Button.danger("request-group-approve",TEXTS.get("Approve")),
-                                        Button.success("request-group-deny",TEXTS.get("Deny"))
-                                        ))
-                        ));
+                                .withEmbeds(e)))
+                .then(groupRequestRepository.deleteById(id));
     }
 }
